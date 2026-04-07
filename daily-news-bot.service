@@ -6,8 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/daily-news-bot
-ExecStart=/usr/bin/dotnet /opt/daily-news-bot/DailyNewsBot.dll
+WorkingDirectory=/opt/daily-news-bot/publish
+ExecStart=/usr/bin/dotnet /opt/daily-news-bot/publish/DailyNewsBot.dll
 Restart=on-failure
 RestartSec=15
 StartLimitBurst=3
