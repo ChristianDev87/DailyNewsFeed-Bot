@@ -127,3 +127,8 @@ Logs werden geschrieben nach:
 - **`logs/bot-YYYYMMDD.log`** — CLEF/JSON (täglich rollend, 14 Tage Aufbewahrung)
 
 Die Log-Dateien liegen relativ zum Arbeitsverzeichnis (`WorkingDirectory` im systemd-Service).
+
+## Geplant
+
+- **Docker** — alle drei Komponenten (Frontend, Bot, Watchdog) sollen in einem gemeinsamen Docker-Setup laufen (`docker-compose` mit internem Netzwerk, kein offener DB-Port nach außen)
+- **Benutzer-Zeitzone** — Digest-Zeiten pro Kanal konfigurierbar statt global (aktuell: `Europe/Berlin`)
