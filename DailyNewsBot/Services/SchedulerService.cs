@@ -74,11 +74,19 @@ public class SchedulerService : BackgroundService
         }
     }
 
+    private static readonly TimeZoneInfo _tz =
+        TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
+
     private static DateTime GetNextRunTime()
     {
-        var now = DateTime.UtcNow;
-        var currentBlock = now.Hour - (now.Hour % 4);
-        var next = now.Date.AddHours(currentBlock + 4);
-        return next <= now ? next.AddHours(4) : next;
+        var nowUtc   = DateTime.UtcNow;
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _tz);
+
+        var currentBlock = nowLocal.Hour - (nowLocal.Hour % 4);
+        var nextLocal    = nowLocal.Date.AddHours(currentBlock + 4);
+        if (nextLocal <= nowLocal)
+            nextLocal = nextLocal.AddHours(4);
+
+        return TimeZoneInfo.ConvertTimeToUtc(nextLocal, _tz);
     }
 }
