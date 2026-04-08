@@ -1,5 +1,15 @@
 # DailyNewsFeed — Bot
 
+> Dieses Repository ist Teil des **DailyNewsFeed**-Systems — einer selbst gehosteten Discord-Nachrichtenplattform.
+
+| [🤖 Bot](https://github.com/ChristianDev87/DailyNewsFeed-Bot) | [🌐 Frontend](https://github.com/ChristianDev87/DailyNewsFeed-Frontend) | [🐍 Watchdog](https://github.com/ChristianDev87/DailyNewsFeed-Watchdog) |
+|:---:|:---:|:---:|
+| .NET 9 Discord Bot | PHP 8 Web-Interface | Python Watchdog |
+
+*Irgendwann sagt man Ja — entstanden aus den Wünschen guter Freunde.* 🙌
+
+---
+
 .NET 9 Discord Bot für DailyNewsFeed. Sendet RSS-Digests in Discord-Kanäle, unterstützt Slash-Commands und einen integrierten Scheduler.
 
 ## Voraussetzungen
