@@ -130,5 +130,5 @@ Die Log-Dateien liegen relativ zum Arbeitsverzeichnis (`WorkingDirectory` im sys
 
 ## Geplant
 
-- **Docker** — alle drei Komponenten (Frontend, Bot, Watchdog) sollen in einem gemeinsamen Docker-Setup laufen (`docker-compose` mit internem Netzwerk, kein offener DB-Port nach außen)
+- **Docker** — alle drei Komponenten sollen als einzelne Container betrieben werden können; Konfiguration über externe Umgebungsvariablen — entweder direkt per `docker run -e` oder über `docker-compose` mit externer `.env`-Datei
 - **Benutzer-Zeitzone** — Digest-Zeiten pro Kanal konfigurierbar statt global (aktuell: `Europe/Berlin`)
