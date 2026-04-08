@@ -15,42 +15,6 @@ public class DigestService
     private readonly ILogger<DigestService> _logger;
     private readonly int _maxParallelFeeds;
 
-    // Standard-Fallback-Kategorien (wenn Kanal nicht in DB oder keine Kategorien konfiguriert)
-    private static readonly List<CategoryData> DefaultCategories =
-    [
-        new("🤖 KI & Künstliche Intelligenz", "🤖",
-        [
-            new("The Decoder (DE)",  "https://the-decoder.de/feed/",                           5),
-            new("IT Boltwise",       "https://it-boltwise.de/feed",                            4),
-            new("Heise KI",          "https://www.heise.de/thema/Kuenstliche-Intelligenz.xml",  5),
-        ]),
-        new("💻 IT & Hardware", "💻",
-        [
-            new("Heise Online",      "https://www.heise.de/rss/heise-atom.xml",                 5),
-            new("Golem",             "https://rss.golem.de/rss.php?feed=RSS2.0",                4),
-            new("PC Games Hardware", "https://www.pcgameshardware.de/feed.cfm?menu_alias=home", 4),
-            new("Tom's Hardware",    "https://www.tomshardware.com/feeds/all",                  4),
-        ]),
-        new("🛠️ Dev & IT-Technik", "🛠️",
-        [
-            new("Heise Developer",   "https://www.heise.de/developer/rss/news-atom.xml",        4),
-            new("Heise Security",    "https://www.heise.de/security/rss/news-atom.xml",         3),
-            new("c't Magazin",       "https://www.heise.de/ct/rss/artikel-atom.xml",            3),
-            new("iX Magazin",        "https://www.heise.de/ix/feed.xml",                        3),
-            new("Hacker News",       "https://hnrss.org/frontpage",                             5),
-            new("t3n",               "https://t3n.de/rss.xml",                                  3),
-            new(".NET Blog",         "https://devblogs.microsoft.com/dotnet/feed/",             2),
-        ]),
-        new("🎮 Gaming", "🎮",
-        [
-            new("GameStar",          "https://www.gamestar.de/news/rss/news.rss",               5),
-            new("PC Games",          "https://www.pcgames.de/feed/news/",                       4),
-            new("Eurogamer DE",      "https://www.eurogamer.de/feed",                           4),
-            new("Golem Games",       "https://rss.golem.de/rss.php?tp=games&feed=RSS2.0",       3),
-            new("IGN",               "https://feeds.feedburner.com/ign/games-all",              3),
-            new("Rock Paper Shotgun","https://www.rockpapershotgun.com/feed",                   3),
-        ]),
-    ];
 
     public DigestService(
         Database db,
@@ -121,8 +85,14 @@ public class DigestService
 
         await tx.CommitAsync(ct);
 
-        // Kategorien ermitteln (eigene oder Standard-Fallback)
+        // Kategorien ermitteln
         var categories = await GetCategoriesForChannelAsync(channelId, ct);
+
+        if (!categories.Any())
+        {
+            _logger.LogInformation("Kanal {ChannelId}: keine Feeds konfiguriert — übersprungen", channelId);
+            return;
+        }
 
         // Feeds parallel holen
         var newArticlesByCategory = new List<(CategoryData Category, List<ProcessedArticle> Articles)>();
@@ -232,9 +202,6 @@ public class DigestService
         return sb.ToString().TrimEnd();
     }
 
-    private bool _firstRunChecked;
-    private bool _isFirstRun;
-
     private bool IsFirstRunToday()
     {
         // Vereinfachte Prüfung: ist es der erste Lauf (00:00-04:00)?
@@ -326,27 +293,17 @@ public class DigestService
             new { channelId })).ToList();
 
         if (!categories.Any())
-            return DefaultCategories;
+            return [];
 
         var result = new List<CategoryData>();
         foreach (var cat in categories)
         {
-            if (cat.UseDefault)
-            {
-                var defaultCat = DefaultCategories.FirstOrDefault(d =>
-                    d.Label.Contains(cat.Emoji, StringComparison.OrdinalIgnoreCase) ||
-                    d.Label == cat.Label);
-                if (defaultCat is not null) result.Add(defaultCat);
-            }
-            else
-            {
-                var feeds = (await conn.QueryAsync<Feed>(
-                    "SELECT * FROM channel_feeds WHERE category_id = @id AND active = 1",
-                    new { id = cat.Id })).ToList();
-                result.Add(new CategoryData(
-                    cat.Label, cat.Emoji,
-                    feeds.Select(f => new FeedConfig(f.Name, f.Url, f.MaxItems)).ToList()));
-            }
+            var feeds = (await conn.QueryAsync<Feed>(
+                "SELECT * FROM channel_feeds WHERE category_id = @id AND active = 1",
+                new { id = cat.Id })).ToList();
+            result.Add(new CategoryData(
+                cat.Label, cat.Emoji,
+                feeds.Select(f => new FeedConfig(f.Name, f.Url, f.MaxItems)).ToList()));
         }
 
         return result;

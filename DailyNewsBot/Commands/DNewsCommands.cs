@@ -21,7 +21,7 @@ public static class DNewsCommands
             case "setup":     await HandleSetupAsync(cmd, db, dashboardUrl);                          break;
             case "senden":    await HandleSendenAsync(cmd, clientProvider, db, digestService, dashboardUrl); break;
             case "status":    await HandleStatusAsync(cmd, db);                                      break;
-            case "feeds":     await HandleFeedsAsync(cmd, db);                                       break;
+            case "feeds":     await HandleFeedsAsync(cmd, db, dashboardUrl);                          break;
             case "pause":     await HandlePauseAsync(cmd, db);                                       break;
             case "fortsetzen":await HandleFortsetzenAsync(cmd, db);                                  break;
             default:
@@ -74,7 +74,7 @@ public static class DNewsCommands
 
         await cmd.RespondAsync(
             $"✅ Kanal wurde eingerichtet!\n" +
-            $"Standard-Feeds sind aktiv. Für eigene Feeds und Kategorien:\n" +
+            $"Bitte konfiguriere jetzt Feeds und Kategorien im Dashboard:\n" +
             $"{dashboardUrl}");
     }
 
@@ -107,6 +107,20 @@ public static class DNewsCommands
                 $"❌ Dieser Kanal ist nicht konfiguriert.\n" +
                 $"Bitte richte ihn zuerst ein: `/dnews setup`\n" +
                 $"Oder im Dashboard: {dashboardUrl}",
+                ephemeral: true);
+            return;
+        }
+
+        var feedCount = await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(cf.id) FROM channel_feeds cf " +
+            "JOIN channel_categories cc ON cc.id = cf.category_id " +
+            "WHERE cc.channel_id = @channelId AND cf.active = 1",
+            new { channelId });
+
+        if (feedCount == 0)
+        {
+            await cmd.RespondAsync(
+                $"⚠️ Keine Feeds konfiguriert.\nBitte richte Feeds im Dashboard ein: {dashboardUrl}",
                 ephemeral: true);
             return;
         }
@@ -158,7 +172,7 @@ public static class DNewsCommands
     }
 
     // /dnews feeds
-    private static async Task HandleFeedsAsync(SocketSlashCommand cmd, Database db)
+    private static async Task HandleFeedsAsync(SocketSlashCommand cmd, Database db, string dashboardUrl)
     {
         if (!IsAdmin(cmd))
         {
@@ -182,7 +196,7 @@ public static class DNewsCommands
         if (!categories.Any())
         {
             await cmd.RespondAsync(
-                "ℹ️ Keine eigenen Feeds konfiguriert — Standard-Feeds sind aktiv.",
+                $"⚠️ Keine Feeds konfiguriert.\nBitte richte Feeds im Dashboard ein: {dashboardUrl}",
                 ephemeral: true);
             return;
         }
