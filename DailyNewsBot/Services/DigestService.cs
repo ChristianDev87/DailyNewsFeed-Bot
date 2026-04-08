@@ -261,7 +261,7 @@ public class DigestService
         {
             try
             {
-                await channel.SendMessageAsync(content);
+                await channel.SendMessageAsync(content, flags: MessageFlags.SuppressEmbeds);
                 return;
             }
             catch (Discord.Net.HttpException ex) when ((int)ex.HttpCode == 429)
