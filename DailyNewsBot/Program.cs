@@ -65,6 +65,7 @@ try
             services.AddHostedService(sp => sp.GetRequiredService<BotService>());
             services.AddSingleton<IBotClientProvider>(sp => sp.GetRequiredService<BotService>());
             services.AddHostedService<SchedulerService>();
+            services.AddHostedService<HeartbeatService>();
         })
         .Build();
 
