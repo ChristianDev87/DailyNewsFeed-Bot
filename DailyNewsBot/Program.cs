@@ -55,7 +55,18 @@ try
             services.AddHttpClient("feeds", client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(15);
-                client.DefaultRequestHeaders.Add("User-Agent", "DailyNewsBot/1.0");
+                client.DefaultRequestHeaders.Add(
+                    "User-Agent",
+                    "DailyNewsBot/1.0 (+https://github.com/ChristianDev87/DailyNewsFeed-Bot; RSS reader)");
+                client.DefaultRequestHeaders.Add(
+                    "Accept",
+                    "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5");
+                client.DefaultRequestHeaders.Add(
+                    "Accept-Language",
+                    "de, en;q=0.9");
+            }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
             });
             services.AddSingleton<FeedFetcher>();
             services.AddSingleton<DigestService>();
