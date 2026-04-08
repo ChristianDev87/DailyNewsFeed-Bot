@@ -34,23 +34,23 @@ public class DigestService
     /// </summary>
     public async Task RunAllChannelsAsync(IBotClientProvider clientProvider, CancellationToken ct)
     {
-        var channels = await GetActiveChannelsAsync(ct);
-        _logger.LogInformation("Digest-Lauf für {Count} aktive Kanäle", channels.Count);
+        var channelIds = await GetActiveChannelIdsAsync(ct);
+        _logger.LogInformation("Digest-Lauf für {Count} aktive Kanäle", channelIds.Count);
 
-        for (int i = 0; i < channels.Count; i++)
+        for (int i = 0; i < channelIds.Count; i++)
         {
             if (ct.IsCancellationRequested) break;
 
             try
             {
-                await RunSingleChannelAsync(channels[i].ChannelId, clientProvider, ct);
+                await RunSingleChannelAsync(channelIds[i], clientProvider, ct);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Digest fehlgeschlagen für Kanal {ChannelId}", channels[i].ChannelId);
+                _logger.LogError(ex, "Digest fehlgeschlagen für Kanal {ChannelId}", channelIds[i]);
             }
 
-            if (i < channels.Count - 1)
+            if (i < channelIds.Count - 1)
                 await Task.Delay(TimeSpan.FromSeconds(5), ct);
         }
     }
@@ -275,12 +275,12 @@ public class DigestService
         }
     }
 
-    private async Task<List<Channel>> GetActiveChannelsAsync(CancellationToken ct = default)
+    private async Task<List<string>> GetActiveChannelIdsAsync(CancellationToken ct = default)
     {
         using var conn = _db.GetConnection();
         await conn.OpenAsync(ct);
-        return (await conn.QueryAsync<Channel>(
-            "SELECT * FROM channels WHERE active = 1")).ToList();
+        return (await conn.QueryAsync<string>(
+            "SELECT channel_id FROM channels WHERE active = 1")).ToList();
     }
 
     private async Task<List<CategoryData>> GetCategoriesForChannelAsync(string channelId, CancellationToken ct = default)
