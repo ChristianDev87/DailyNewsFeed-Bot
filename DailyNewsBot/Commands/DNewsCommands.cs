@@ -147,7 +147,8 @@ public static class DNewsCommands
         await conn.OpenAsync();
 
         var lastRun = await conn.ExecuteScalarAsync<DateTime?>(
-            "SELECT executed_at FROM bot_commands WHERE status = 'done' ORDER BY executed_at DESC LIMIT 1");
+            "SELECT MAX(seen_at) FROM seen_articles WHERE channel_id = @channelId",
+            new { channelId });
 
         var articlesToday = await conn.ExecuteScalarAsync<int>(
             "SELECT COUNT(*) FROM seen_articles WHERE channel_id = @channelId AND DATE(seen_at) = CURDATE()",
