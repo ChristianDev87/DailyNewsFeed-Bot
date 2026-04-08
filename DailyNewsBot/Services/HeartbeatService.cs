@@ -23,8 +23,8 @@ public class HeartbeatService : BackgroundService
                 using var conn = _db.GetConnection();
                 await conn.OpenAsync(stoppingToken);
                 await conn.ExecuteAsync(
-                    "INSERT INTO bot_status (id, last_seen) VALUES (1, UTC_TIMESTAMP()) " +
-                    "ON DUPLICATE KEY UPDATE last_seen = UTC_TIMESTAMP()");
+                    "INSERT INTO bot_status (id, last_seen, status) VALUES (1, UTC_TIMESTAMP(), 'online') " +
+                    "ON DUPLICATE KEY UPDATE last_seen = UTC_TIMESTAMP(), status = 'online'");
             }
             catch (Exception ex)
             {
@@ -33,5 +33,23 @@ public class HeartbeatService : BackgroundService
 
             await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
         }
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var conn = _db.GetConnection();
+            await conn.OpenAsync(cancellationToken);
+            await conn.ExecuteAsync(
+                "UPDATE bot_status SET status = 'offline' WHERE id = 1");
+            _logger.LogInformation("Bot-Status auf offline gesetzt");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Fehler beim Setzen des Offline-Status");
+        }
+
+        await base.StopAsync(cancellationToken);
     }
 }
