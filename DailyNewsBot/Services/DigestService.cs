@@ -213,7 +213,7 @@ public class DigestService
     private async Task<ulong> GetOrCreateThreadAsync(
         string channelId, DiscordRestClient restClient, CancellationToken ct)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateTime.UtcNow.Date;
 
         // Bestehenden Thread suchen
         using var conn = _db.GetConnection();
