@@ -58,6 +58,11 @@ public class SchedulerService : BackgroundService
             return;
         }
 
+        var cmdId = await conn.ExecuteScalarAsync<long>(
+            "INSERT INTO bot_commands (command, status, created_by, created_at) " +
+            "VALUES ('run_digest', 'pending', 'scheduler', NOW()); SELECT LAST_INSERT_ID()");
+
+        var status = "done";
         try
         {
             _logger.LogInformation("Scheduler-Lock erhalten — starte Digest-Lauf");
@@ -66,9 +71,13 @@ public class SchedulerService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Fehler im Scheduler-Digest-Lauf");
+            status = "failed";
         }
         finally
         {
+            await conn.ExecuteAsync(
+                "UPDATE bot_commands SET status = @status, executed_at = NOW() WHERE id = @cmdId",
+                new { status, cmdId });
             await conn.ExecuteScalarAsync<int>("SELECT RELEASE_LOCK('daily_news_scheduler')");
             _logger.LogInformation("Scheduler-Lock freigegeben");
         }
