@@ -2,6 +2,8 @@
 Description=Daily News Discord Bot
 After=network-online.target mysql.service
 Wants=network-online.target
+StartLimitBurst=3
+StartLimitIntervalSec=60
 
 [Service]
 Type=simple
@@ -10,8 +12,6 @@ WorkingDirectory=/opt/daily-news-bot/publish
 ExecStart=/usr/bin/dotnet /opt/daily-news-bot/publish/DailyNewsBot.dll
 Restart=on-failure
 RestartSec=15
-StartLimitBurst=3
-StartLimitIntervalSec=60
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=daily-news-bot
