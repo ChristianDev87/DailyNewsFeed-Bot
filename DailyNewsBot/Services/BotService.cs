@@ -54,10 +54,11 @@ public class BotService : BackgroundService, IBotClientProvider
         };
 
         _socketClient = new DiscordSocketClient(config);
-        _socketClient.Log           += LogAsync;
-        _socketClient.Ready         += OnReadyAsync;
-        _socketClient.JoinedGuild   += OnJoinedGuildAsync;
-        _socketClient.LeftGuild     += OnLeftGuildAsync;
+        _socketClient.Log                  += LogAsync;
+        _socketClient.Ready                += OnReadyAsync;
+        _socketClient.GuildAvailable       += OnGuildAvailableAsync;
+        _socketClient.JoinedGuild          += OnJoinedGuildAsync;
+        _socketClient.LeftGuild            += OnLeftGuildAsync;
         _socketClient.SlashCommandExecuted += OnSlashCommandAsync;
 
         // Standard REST-Client
@@ -76,27 +77,21 @@ public class BotService : BackgroundService, IBotClientProvider
     private async Task OnReadyAsync()
     {
         _logger.LogInformation("Bot online als {Username}", _socketClient.CurrentUser.Username);
-
-        // Custom-Token-Clients aufbauen
         await InitializeCustomClientsAsync();
+        // GuildAvailable wird für jede Guild gefeuert — Commands + Sync dort
+    }
 
-        // Commands für alle bekannten Guilds registrieren
-        using var conn = _db.GetConnection();
-        await conn.OpenAsync();
-        var guildIds = (await conn.QueryAsync<string>(
-            "SELECT DISTINCT guild_id FROM channels")).ToList();
-
-        foreach (var guildIdStr in guildIds)
-        {
-            if (ulong.TryParse(guildIdStr, out var guildId))
-                await RegisterCommandsForGuildAsync(guildId);
-        }
+    private async Task OnGuildAvailableAsync(SocketGuild guild)
+    {
+        await RegisterCommandsForGuildAsync(guild.Id);
+        await SyncKnownGuildAsync(guild);
     }
 
     private async Task OnJoinedGuildAsync(SocketGuild guild)
     {
         _logger.LogInformation("Guild beigetreten: {GuildName} ({GuildId})", guild.Name, guild.Id);
         await RegisterCommandsForGuildAsync(guild.Id);
+        await SyncKnownGuildAsync(guild);
     }
 
     private async Task OnLeftGuildAsync(SocketGuild guild)
@@ -107,6 +102,30 @@ public class BotService : BackgroundService, IBotClientProvider
         await conn.ExecuteAsync(
             "UPDATE channels SET active = 0 WHERE guild_id = @guildId",
             new { guildId = guild.Id.ToString() });
+        await conn.ExecuteAsync(
+            "UPDATE known_guilds SET active = 0, updated_at = NOW() WHERE guild_id = @guildId",
+            new { guildId = guild.Id.ToString() });
+    }
+
+    private async Task SyncKnownGuildAsync(SocketGuild guild)
+    {
+        try
+        {
+            using var conn = _db.GetConnection();
+            await conn.OpenAsync();
+            await conn.ExecuteAsync(@"
+                INSERT INTO known_guilds (guild_id, guild_name, active, joined_at, updated_at)
+                VALUES (@guildId, @guildName, 1, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    guild_name = @guildName,
+                    active     = 1,
+                    updated_at = NOW()",
+                new { guildId = guild.Id.ToString(), guildName = guild.Name });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Sync von Guild {GuildId}", guild.Id);
+        }
     }
 
     private async Task RegisterCommandsForGuildAsync(ulong guildId)
